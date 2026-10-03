@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { paymentsService } from '@/src/lib/payments/payments-service';
+import { paymentsService } from '@/lib/payments/payments-service';
 
 /**
  * Next.js App Router Route Handler (Vercel Serverless Ready)
@@ -7,10 +7,10 @@ import { paymentsService } from '@/src/lib/payments/payments-service';
  */
 export async function GET(
   _req: Request,
-  { params }: { params: { paymentIntentId: string } }
+  props: { params: Promise<{ paymentIntentId: string }> }
 ) {
   try {
-    const { paymentIntentId } = params;
+    const { paymentIntentId } = await props.params;
     if (!paymentIntentId) {
       return NextResponse.json({ error: 'PaymentIntent ID required' }, { status: 400 });
     }

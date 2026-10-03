@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { verifyAndConstructWebhookEvent, isStripeConfigured } from '@/src/lib/stripe/server';
-import { paymentsService } from '@/src/lib/payments/payments-service';
+import { verifyAndConstructWebhookEvent, isStripeConfigured } from '@/lib/stripe/server';
+import { paymentsService } from '@/lib/payments/payments-service';
 
 /**
  * Next.js App Router Stripe Webhook Handler (Vercel Serverless Ready)

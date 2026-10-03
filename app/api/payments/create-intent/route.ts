@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createPaymentIntentSchema } from '@/src/lib/validation/schemas';
-import { paymentsService } from '@/src/lib/payments/payments-service';
-import { getProductById } from '@/src/lib/payments/products';
-import { normalizeStripeError } from '@/src/lib/payments/error-normalizer';
+import { createPaymentIntentSchema } from '@/lib/validation/schemas';
+import { paymentsService } from '@/lib/payments/payments-service';
+import { getProductById } from '@/lib/payments/products';
+import { normalizeStripeError } from '@/lib/payments/error-normalizer';
 
 /**
  * Next.js App Router Route Handler (Vercel Serverless Ready)

@@ -77,10 +77,9 @@ app.post(
 // -------------------------------------------------------------
 app.use(express.json({ limit: '100kb' }));
 
-// Basic Security Headers
+// Basic Security Headers (Compatible with iframe preview in AI Studio)
 app.use((_req: Request, res: Response, next: NextFunction) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   next();
 });
@@ -219,11 +218,26 @@ app.get('/api/admin/metrics', async (_req: Request, res: Response) => {
 // -------------------------------------------------------------
 async function setupViteOrStatic() {
   if (!isProduction) {
+    const fs = await import('fs');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
+    app.use('*', async (req: Request, res: Response, next: NextFunction) => {
+      const url = req.originalUrl;
+      if (url.startsWith('/api')) {
+        return next();
+      }
+      try {
+        let template = fs.readFileSync(path.resolve(__dirname, 'index.html'), 'utf-8');
+        template = await vite.transformIndexHtml(url, template);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+      } catch (e: any) {
+        vite.ssrFixStacktrace(e);
+        next(e);
+      }
+    });
   } else {
     app.use(express.static(path.resolve(__dirname, 'dist')));
     app.get('*', (_req: Request, res: Response) => {

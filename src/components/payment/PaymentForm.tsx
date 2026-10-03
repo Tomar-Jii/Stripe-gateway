@@ -65,16 +65,23 @@ function RealStripeCardInputs({
   );
 }
 
-// Inner Form executing the state machine
-function PaymentFormInner({
+interface PaymentFormCoreProps extends PaymentFormProps {
+  hasLiveStripe: boolean;
+  publishableKey?: string;
+  stripe: ReturnType<typeof useStripe> | null;
+  elements: ReturnType<typeof useElements> | null;
+}
+
+// Inner Core Form executing the state machine
+function PaymentFormCore({
   product,
   onChooseAnotherProduct,
   onPaymentSuccess,
   hasLiveStripe,
   publishableKey,
-}: PaymentFormProps & { hasLiveStripe: boolean; publishableKey?: string }) {
-  const stripe = useStripe();
-  const elements = useElements();
+  stripe,
+  elements,
+}: PaymentFormCoreProps) {
 
   const [state, setState] = useState<PaymentStateMachineState>('IDLE');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -535,6 +542,22 @@ function PaymentFormInner({
   );
 }
 
+// Component that safely calls useStripe() and useElements() only when mounted inside <Elements>
+function LiveStripePaymentInner(
+  props: PaymentFormProps & { publishableKey: string }
+) {
+  const stripe = useStripe();
+  const elements = useElements();
+  return (
+    <PaymentFormCore
+      {...props}
+      stripe={stripe}
+      elements={elements}
+      hasLiveStripe={true}
+    />
+  );
+}
+
 // Wrapper with Stripe Elements Provider
 export const PaymentForm: React.FC<PaymentFormProps> = (props) => {
   const [stripePromise, setStripePromise] = useState<Promise<any> | null>(null);
@@ -542,7 +565,19 @@ export const PaymentForm: React.FC<PaymentFormProps> = (props) => {
   const [pubKey, setPubKey] = useState<string>('');
 
   useEffect(() => {
-    // Check if client publishable key is available
+    // Check if client publishable key is available from server
+    fetch('/api/config')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.publishableKey && typeof data.publishableKey === 'string' && data.publishableKey.startsWith('pk_')) {
+          setPubKey(data.publishableKey);
+          setHasLiveKey(true);
+          setStripePromise(getClientStripe(data.publishableKey));
+        }
+      })
+      .catch(() => {});
+
+    // Or from build-time environment variable
     const key =
       (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY : undefined) ||
       (typeof import.meta !== 'undefined' ? (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY : undefined) ||
@@ -558,19 +593,20 @@ export const PaymentForm: React.FC<PaymentFormProps> = (props) => {
   if (hasLiveKey && stripePromise) {
     return (
       <Elements stripe={stripePromise}>
-        <PaymentFormInner
+        <LiveStripePaymentInner
           {...props}
-          hasLiveStripe={true}
           publishableKey={pubKey}
         />
       </Elements>
     );
   }
 
-  // Fallback to seamless direct sandbox simulator
+  // Fallback to seamless direct sandbox simulator without Elements requirement
   return (
-    <PaymentFormInner
+    <PaymentFormCore
       {...props}
+      stripe={null}
+      elements={null}
       hasLiveStripe={false}
     />
   );
