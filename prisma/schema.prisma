@@ -1,0 +1,75 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Product {
+  id          String   @id
+  name        String
+  description String   @db.Text
+  price       Int      @default(100) // Strictly 100 cents ($1.00 USD)
+  currency    String   @default("usd")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orders      Order[]
+
+  @@map("products")
+}
+
+model Order {
+  id                    String    @id @default(cuid())
+  orderNumber           String    @unique
+  productId             String
+  product               Product   @relation(fields: [productId], references: [id])
+  amount                Int       @default(100) // Strictly 100 cents
+  currency              String    @default("usd")
+  status                String    @default("pending") // pending, processing, paid, failed, canceled
+  stripePaymentIntentId String?   @unique
+  customerEmail         String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  payments              Payment[]
+
+  @@index([status])
+  @@index([orderNumber])
+  @@index([stripePaymentIntentId])
+  @@map("orders")
+}
+
+model Payment {
+  id                    String   @id @default(cuid())
+  orderId               String
+  order                 Order    @relation(fields: [orderId], references: [id])
+  stripePaymentIntentId String   @unique
+  amount                Int      @default(100)
+  currency              String   @default("usd")
+  status                String   // requires_payment_method, requires_action, processing, succeeded, failed, canceled
+  failureCode           String?
+  safeFailureMessage    String?  @db.Text
+  cardBrand             String?
+  cardLast4             String?
+  receiptUrl            String?  @db.Text
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([status])
+  @@index([stripePaymentIntentId])
+  @@map("payments")
+}
+
+model StripeWebhookEvent {
+  id            String   @id @default(cuid())
+  stripeEventId String   @unique
+  eventType     String
+  processedAt   DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@index([stripeEventId])
+  @@index([eventType])
+  @@map("stripe_webhook_events")
+}

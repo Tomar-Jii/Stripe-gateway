@@ -1,0 +1,6 @@
+{
+  "name": "Stripe PayPlatform - $1.00 USD Card Payment Gateway",
+  "description": "Production-grade, card-only $1.00 USD payment platform with Stripe Elements, server-side PaymentIntents, webhook verification, PostgreSQL-ready database, and admin analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
